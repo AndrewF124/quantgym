@@ -23,7 +23,7 @@ The project URL, publishable API key, and allowed owner UUID are configured in a
 
 The table uses id, user_id, completed_at, activity, and results (JSONB). Authenticated requests need SELECT, INSERT, UPDATE, DELETE grants, with RLS limiting every operation to the owner UUID and matching user_id. This was configured separately in Supabase.
 
-Sign in with your Supabase email/password user. A completed session is assigned a UUID and saved locally pending successful upsert; retries use that same UUID. Practice rounds started while signed out are not saved. Results refresh on sign-in, browser focus, reconnect, or Refresh. Only complete ten-question sessions are stored. Simultaneous offline edits across browser tabs are not supported; use one practice tab per device.
+Sign in with your Supabase email/password user. A completed session is assigned a UUID and saved locally pending successful upsert; retries use that same UUID. Practice rounds started while signed out are not saved. Results refresh on sign-in, browser focus, reconnect, or Refresh. Completed timed rounds and ten-question probability sessions are stored. Simultaneous offline edits across browser tabs are not supported; use one practice tab per device.
 
 ## Verify the connection
 
@@ -33,3 +33,8 @@ Sign in with your Supabase email/password user. A completed session is assigned 
 4. In Supabase, verify anonymous and other authenticated users cannot read or change training_results. Database administrators retain administrative access.
 
 The automated tests cover answer parsing, rounding, question generation, and statistics. Live owner authentication and cross-device syncing require the owner's credentials and must be checked separately.
+
+## Timed mental math
+
+Mental math now uses a speed drill: choose operations, operand ranges, and 30/60/120/300 seconds (default 120). Correct integer answers advance as you type; incorrect input stays editable. Subtraction and division reverse the configured addition and multiplication ranges. The timer continues in background tabs; only answers received before the deadline count. Discarded rounds are not saved. Completed rounds store the score, duration, settings, and answered questions in the existing results JSONB field; no database migration is needed. Graded accuracy excludes speed rounds because these only record correct answers. Probability retains its ten-question practice format.
+

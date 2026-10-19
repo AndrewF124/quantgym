@@ -1,4 +1,5 @@
 import {question,parseAnswer,isCorrect,summary} from './core.js';
+import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js';
 const URL='https://lhxsquzmblnfhauqrhoh.supabase.co';
 const KEY='sb_publishable_aRzHnFzqPywqtRqJi-chkg_wLp_Yh9i';
 const OWNER='46df99c8-daed-4eee-8aea-974e6fbd1a91';
@@ -12,9 +13,9 @@ $('today').textContent=new Date().toLocaleDateString(undefined,{weekday:'short',
 function savePending(){try{localStorage.setItem(`quantgym-pending-${OWNER}`,JSON.stringify(pending));}catch{notice('Browser backup is unavailable. Keep this tab open until syncing succeeds.');}}
 function readPending(){try{return JSON.parse(localStorage.getItem(`quantgym-pending-${OWNER}`)||'[]').filter(r=>r.user_id===OWNER);}catch{return [];}}
 function render(){
- const s=summary(rows);$('accuracy').textContent=s.total?`${Math.round(s.correct/s.total*100)}%`:'—';$('sessions').textContent=s.sessions;$('answers').textContent=s.total;$('speed').textContent=s.total?(s.seconds/s.total).toFixed(1):'—';
+ const s=summary(rows), graded=summary(rows.filter(r=>r.results?.mode!=='speed'));$('accuracy').textContent=graded.total?`${Math.round(graded.correct/graded.total*100)}%`:'—';$('accuracy').nextElementSibling.textContent='graded practice accuracy';$('sessions').textContent=s.sessions;$('answers').textContent=s.total;$('speed').textContent=s.total?(s.seconds/s.total).toFixed(1):'—';
  const dates=new Set(rows.map(r=>new Date(r.completed_at).toDateString()));let day=new Date(),streak=0;if(!dates.has(day.toDateString()))day.setDate(day.getDate()-1);while(dates.has(day.toDateString())){streak++;day.setDate(day.getDate()-1);}$('streak').textContent=streak;
- $('history').innerHTML=rows.length?rows.slice(0,12).map(r=>{const x=summary([r]);return `<div class="log-row"><div>${r.activity==='math'?'Mental math':'Probability'}<small>${escape(new Date(r.completed_at).toLocaleString())} · ${escape(r.results?.difficulty||'foundation')}</small></div><div class="log-score">${x.correct} / ${x.total}<small>${pending.some(p=>p.id===r.id)?'Waiting to sync':'Completed'}</small></div></div>`;}).join(''):`<div class="empty"><strong>Your first rep starts here.</strong>${user?'Complete a session to start your training log.':'Sign in to see saved sessions, or try a practice round.'}</div>`;
+ $('history').innerHTML=rows.length?rows.slice(0,12).map(r=>{const x=summary([r]),speed=r.results?.mode==='speed';return `<div class="log-row"><div>${speed?'Math speed drill':r.activity==='math'?'Mental math':'Probability'}<small>${escape(new Date(r.completed_at).toLocaleString())} · ${speed?`${escape(r.results.duration)}s · ${escape(r.results.settings.operations.join(' '))}`:escape(r.results?.difficulty||'foundation')}</small></div><div class="log-score">${speed?`${x.correct} correct`:`${x.correct} / ${x.total}`}<small>${pending.some(p=>p.id===r.id)?'Waiting to sync':'Completed'}</small></div></div>`;}).join(''):`<div class="empty"><strong>Your first rep starts here.</strong>${user?'Complete a session to start your training log.':'Sign in to see saved sessions, or try a practice round.'}</div>`;
 }
 let syncing=false;
 async function sync(){
@@ -29,7 +30,16 @@ async function sync(){
 }
 function setupPractice(){
  document.querySelectorAll('[data-track]').forEach(b=>{b.classList.toggle('selected',b.dataset.track===track);b.setAttribute('aria-pressed',String(b.dataset.track===track));b.onclick=()=>{track=b.dataset.track;setupPractice();};});
- $('start').onclick=()=>{session={id:crypto.randomUUID(),owner:user?.id||null,track,difficulty:$('difficulty').value,attempts:[]};showQuestion();};
+ let settings=$('speed-settings');if(!settings){settings=document.createElement('div');settings.id='speed-settings';settings.innerHTML=settingsMarkup();$('practice').querySelector('.start-row').before(settings);}
+ settings.hidden=track!=='math';$('difficulty').parentElement.hidden=track==='math';$('practice').querySelector('.pill').textContent=track==='math'?'Beat the clock':'10 questions · your pace';
+ $('practice').querySelector('[data-track="math"] strong').textContent='Math speed drill';$('practice').querySelector('[data-track="math"] > span:not(.track-icon)').textContent='Addition, subtraction, multiplication & division';
+ $('start').onclick=()=>{
+  if(track==='math'){
+   const config=readSettings(settings),error=validateSettings(config);$('settings-error').textContent=error;if(error)return;
+   session={id:crypto.randomUUID(),owner:user?.id||null,track,mode:'speed',duration:config.duration,settings:config,attempts:[]};
+   runSpeedRound($('practice'),config,attempts=>{session.attempts=attempts;finish();},resetPractice);
+  }else{session={id:crypto.randomUUID(),owner:user?.id||null,track,difficulty:$('difficulty').value,attempts:[]};showQuestion();}
+ };
  $('practice-note').textContent=user?'Your completed sessions will sync to your private account.':'Try a session now. Sign in to save your results across devices.';
 }
 function resetPractice(){session=null;$('practice').innerHTML=initialPractice;setupPractice();}
@@ -45,10 +55,10 @@ function showQuestion(){
 }
 function finish(){
  const completed=session;session=null;const correct=completed.attempts.filter(a=>a.correct).length;
- const row={id:completed.id,user_id:completed.owner,completed_at:new Date().toISOString(),activity:completed.track,results:{difficulty:completed.difficulty,attempts:completed.attempts}};
+ const row={id:completed.id,user_id:completed.owner,completed_at:new Date().toISOString(),activity:completed.track,results:{difficulty:completed.difficulty,attempts:completed.attempts,...(completed.mode==='speed'?{mode:'speed',duration:completed.duration,settings:completed.settings}: {})}};
  const canSave=user&&completed.owner===user.id;
  if(canSave){pending.push(row);savePending();rows.unshift(row);render();sync();}
- $('practice').innerHTML=`<div class="section-label">SESSION COMPLETE</div><h2 class="question">${correct} / 10. Another rep in the bank.</h2><p class="muted">${canSave?'Your result is queued for syncing. Check the sync status for confirmation.':'Practice complete. Sign in before your next session to save results.'}</p><details><summary>Review all 10 answers</summary>${completed.attempts.map(a=>`<div class="review-item"><strong>${a.correct?'✓':'○'} ${escape(a.prompt)}</strong><p>Your answer: ${escape(a.given)} · Correct: ${Number(a.answer.toFixed(4))}</p><p>${escape(a.explanation)}</p></div>`).join('')}</details><button id="again" class="accent">Back to training ↗</button>`;$('again').onclick=resetPractice;
+ $('practice').innerHTML=`<div class="section-label">${completed.mode==='speed'?"TIME’S UP":'SESSION COMPLETE'}</div><h2 class="question">${completed.mode==='speed'?`${correct} correct in ${completed.duration} seconds.`:`${correct} / 10. Another rep in the bank.`}</h2>${completed.mode==='speed'?`<p class="muted">${(correct/completed.duration*60).toFixed(1)} answers per minute · ${escape(completed.settings.operations.join(' '))}</p>`:''}<p class="muted">${canSave?'Your result is queued for syncing. Check the sync status for confirmation.':'Practice complete. Sign in before your next session to save results.'}</p><details><summary>Review ${completed.attempts.length} answers</summary>${completed.attempts.map(a=>`<div class="review-item"><strong>${a.correct?'✓':'○'} ${escape(a.prompt)}</strong><p>Your answer: ${escape(a.given)} · Correct: ${Number(a.answer.toFixed(4))}</p>${a.explanation?`<p>${escape(a.explanation)}</p>`:''}</div>`).join('')}</details><button id="again" class="accent">Back to training ↗</button>`;$('again').onclick=resetPractice;
 }
 async function setUser(next){
  if(next&&next.id!==OWNER){await client.auth.signOut();notice('This site is restricted to its owner account.');return;}

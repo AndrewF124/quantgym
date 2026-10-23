@@ -1,3 +1,4 @@
+import {mountAnalytics} from './analytics.js?v=20261023';
 import {question,parseAnswer,isCorrect,summary} from './core.js';
 import {readRuns,writeRun,mergeRuns,migratePending} from './run-store.js';
 import {mountHistory} from './history.js';
@@ -25,10 +26,11 @@ function importGuest(){
  render();sync();
 }
 const renderHistory=mountHistory($('history'),()=>({rows,pending,user,guestCount:stored(null).length,importGuest}));
+const renderAnalytics=mountAnalytics($('analytics'),()=>rows);
 function render(){
  const s=summary(rows), graded=summary(rows.filter(r=>r.results?.mode!=='speed'));$('accuracy').textContent=graded.total?`${Math.round(graded.correct/graded.total*100)}%`:'—';$('accuracy').nextElementSibling.textContent='graded practice accuracy';$('sessions').textContent=s.sessions;$('answers').textContent=s.total;$('speed').textContent=s.total?(s.seconds/s.total).toFixed(1):'—';
  const dates=new Set(rows.map(r=>new Date(r.completed_at).toDateString()));let day=new Date(),streak=0;if(!dates.has(day.toDateString()))day.setDate(day.getDate()-1);while(dates.has(day.toDateString())){streak++;day.setDate(day.getDate()-1);}$('streak').textContent=streak;
- renderHistory();
+ renderHistory();renderAnalytics();
 }
 let syncing=false,syncRequested=false;
 async function sync(){

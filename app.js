@@ -1,7 +1,7 @@
 import {mountAnalytics} from './analytics.js?v=20261023';
 import {question,parseAnswer,isCorrect,summary} from './core.js';
 import {readRuns,writeRun,mergeRuns,migratePending} from './run-store.js';
-import {mountHistory} from './history.js';
+import {mountHistory} from './history.js?v=owner-20261023';
 import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js';
 const URL='https://lhxsquzmblnfhauqrhoh.supabase.co';
 const KEY='sb_publishable_aRzHnFzqPywqtRqJi-chkg_wLp_Yh9i';
@@ -55,7 +55,7 @@ function setupPractice(){
    runSpeedRound($('practice'),config,attempts=>{session.attempts=attempts;finish();},resetPractice);
   }else{session={id:crypto.randomUUID(),owner:user?.id||null,track,difficulty:$('difficulty').value,attempts:[]};showQuestion();}
  };
- $('practice-note').textContent=user?'Your completed sessions will sync to your private account.':'Completed runs save in this browser. Sign in to sync them across devices.';
+ $('practice-note').textContent=user?'Your completed sessions will sync to your private account.':'Visitors can practice and save runs in this browser only. Sign-in and cloud storage are reserved for the site owner.';
 }
 function resetPractice(){session=null;$('practice').innerHTML=initialPractice;setupPractice();}
 function showQuestion(){
@@ -76,12 +76,12 @@ function finish(){
  const retained=retain(storedRow,Boolean(canSave));
  if(canSave){pending=mergeRuns(pending,[storedRow]);rows=mergeRuns(rows,[storedRow]);render();sync();}
  else if(!user){rows=mergeRuns(rows,[storedRow]);render();}
- $('practice').innerHTML=`<div class="section-label">${completed.mode==='speed'?"TIME’S UP":'SESSION COMPLETE'}</div><h2 class="question">${completed.mode==='speed'?`${correct} correct in ${completed.duration} seconds.`:`${correct} / 10. Another rep in the bank.`}</h2>${completed.mode==='speed'?`<p class="muted">${(correct/completed.duration*60).toFixed(1)} answers per minute · ${escape(completed.settings.operations.join(' '))}</p>`:''}<p class="muted">${canSave?'Your result is queued for syncing. Check the sync status for confirmation.':retained?'Saved in this browser. Sign in and save browser runs to your account from the history below to sync.':'Browser storage failed. Keep this page open and export your history.'}</p><details><summary>Review ${completed.attempts.length} answers</summary>${completed.attempts.map(a=>`<div class="review-item"><strong>${a.correct?'✓':'○'} ${escape(a.prompt)}</strong><p>Your answer: ${escape(a.given)} · Correct: ${Number(a.answer.toFixed(4))}</p>${a.explanation?`<p>${escape(a.explanation)}</p>`:''}</div>`).join('')}</details><button id="again" class="accent">Back to training ↗</button>`;$('again').onclick=resetPractice;
+ $('practice').innerHTML=`<div class="section-label">${completed.mode==='speed'?"TIME’S UP":'SESSION COMPLETE'}</div><h2 class="question">${completed.mode==='speed'?`${correct} correct in ${completed.duration} seconds.`:`${correct} / 10. Another rep in the bank.`}</h2>${completed.mode==='speed'?`<p class="muted">${(correct/completed.duration*60).toFixed(1)} answers per minute · ${escape(completed.settings.operations.join(' '))}</p>`:''}<p class="muted">${canSave?'Your result is queued for syncing. Check the sync status for confirmation.':retained?'Saved in this browser only. Visitors cannot save to the cloud or sync across devices; those features are reserved for the site owner.':'Browser storage failed. Keep this page open and export your history.'}</p><details><summary>Review ${completed.attempts.length} answers</summary>${completed.attempts.map(a=>`<div class="review-item"><strong>${a.correct?'✓':'○'} ${escape(a.prompt)}</strong><p>Your answer: ${escape(a.given)} · Correct: ${Number(a.answer.toFixed(4))}</p>${a.explanation?`<p>${escape(a.explanation)}</p>`:''}</div>`).join('')}</details><button id="again" class="accent">Back to training ↗</button>`;$('again').onclick=resetPractice;
 }
 async function setUser(next){
  if(next&&next.id!==OWNER){await client.auth.signOut();notice('This site is restricted to its owner account.');return;}
  if(user?.id===next?.id)return;
- authVersion++;user=next;rows=stored(user?.id).map(e=>e.row);pending=user?readPending():[];$('account-button').textContent=user?'Sign out ↗':'Sign in ↗';render();if(!session&&$('start'))setupPractice();if(user)await sync();else syncStatus('Saved locally · sign in to sync');
+ authVersion++;user=next;rows=stored(user?.id).map(e=>e.row);pending=user?readPending():[];$('account-button').textContent=user?'Sign out ↗':'Owner sign in ↗';render();if(!session&&$('start'))setupPractice();if(user)await sync();else syncStatus('Browser storage only · cloud sync is owner-only');
 }
 $('account-button').onclick=async()=>{if(session){notice('Finish or end your session before changing accounts.');return;}if(user){const {error}=await client.auth.signOut();if(error)notice(error.message);}else $('login-dialog').showModal();};
 $('close-login').onclick=()=>$('login-dialog').close();

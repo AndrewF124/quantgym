@@ -1,8 +1,9 @@
-import {mountAnalytics} from './analytics.js?v=20261023';
+import {mountTargeted} from './targeted.js';
+import {mountAnalytics} from './analytics.js?v=target-20261024';
 import {question,parseAnswer,isCorrect,summary} from './core.js';
 import {readRuns,writeRun,mergeRuns,migratePending} from './run-store.js';
-import {mountHistory} from './history.js?v=owner-20261023';
-import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js';
+import {mountHistory} from './history.js?v=target-20261024';
+import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=target-20261024';
 const URL='https://lhxsquzmblnfhauqrhoh.supabase.co';
 const KEY='sb_publishable_aRzHnFzqPywqtRqJi-chkg_wLp_Yh9i';
 const OWNER='46df99c8-daed-4eee-8aea-974e6fbd1a91';
@@ -27,10 +28,16 @@ function importGuest(){
 }
 const renderHistory=mountHistory($('history'),()=>({rows,pending,user,guestCount:stored(null).length,importGuest}));
 const renderAnalytics=mountAnalytics($('analytics'),()=>rows);
+const renderTargeted=mountTargeted($('targeted'),()=>rows,config=>{
+ if(session){notice('Finish or discard your current round before starting targeted practice.');return;}
+ session={id:crypto.randomUUID(),owner:user?.id||null,track:'math',mode:'speed',duration:config.duration,settings:config,attempts:[]};
+ runSpeedRound($('practice'),config,attempts=>{session.attempts=attempts;finish();},resetPractice);
+ $('practice').scrollIntoView({block:'start',behavior:'smooth'});
+});
 function render(){
  const s=summary(rows), graded=summary(rows.filter(r=>r.results?.mode!=='speed'));$('accuracy').textContent=graded.total?`${Math.round(graded.correct/graded.total*100)}%`:'—';$('accuracy').nextElementSibling.textContent='graded practice accuracy';$('sessions').textContent=s.sessions;$('answers').textContent=s.total;$('speed').textContent=s.total?(s.seconds/s.total).toFixed(1):'—';
  const dates=new Set(rows.map(r=>new Date(r.completed_at).toDateString()));let day=new Date(),streak=0;if(!dates.has(day.toDateString()))day.setDate(day.getDate()-1);while(dates.has(day.toDateString())){streak++;day.setDate(day.getDate()-1);}$('streak').textContent=streak;
- renderHistory();renderAnalytics();
+ renderHistory();renderAnalytics();renderTargeted();
 }
 let syncing=false,syncRequested=false;
 async function sync(){

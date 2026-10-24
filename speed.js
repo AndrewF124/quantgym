@@ -1,5 +1,6 @@
 // Integer arithmetic: subtraction and division invert addition and multiplication.
 export function speedQuestion(settings, random = Math.random) {
+  if(settings.questions?.length)return {...settings.questions[Math.floor(random()*settings.questions.length)]};
   const pick = (min, max) => min + Math.floor(random() * (max - min + 1));
   const operation = settings.operations[pick(0, settings.operations.length - 1)];
   const range = operation === '+' || operation === '−' ? settings.add : settings.multiply;
@@ -35,7 +36,7 @@ export function readSettings(root) {
 }
 
 export function runSpeedRound(root, settings, onComplete, onCancel) {
-  root.innerHTML=`<div class="section-label"><span>MENTAL MATH / SPEED DRILL</span><button id="stop-speed" class="text-button">Discard round ✕</button></div><div class="speed-metrics"><div><span>TIME LEFT</span><strong id="time-left" role="timer"></strong></div><div><span>SCORE</span><strong id="round-score">0</strong></div></div><div class="progress"><span id="time-bar" style="width:100%"></span></div><div class="speed-stage"><h2 id="speed-question" aria-live="polite"></h2><label for="speed-answer">Your answer</label><input id="speed-answer" inputmode="numeric" autocomplete="off" aria-describedby="speed-hint"><p id="speed-hint" class="muted">Just type. No Enter needed.</p></div>`;
+  root.innerHTML=`<div class="section-label"><span>MENTAL MATH / ${settings.target?'TARGETED PRACTICE':'SPEED DRILL'}</span><button id="stop-speed" class="text-button">Discard round ✕</button></div><div class="speed-metrics"><div><span>TIME LEFT</span><strong id="time-left" role="timer"></strong></div><div><span>SCORE</span><strong id="round-score">0</strong></div></div><div class="progress"><span id="time-bar" style="width:100%"></span></div><div class="speed-stage"><h2 id="speed-question" aria-live="polite"></h2><label for="speed-answer">Your answer</label><input id="speed-answer" inputmode="numeric" autocomplete="off" aria-describedby="speed-hint"><p id="speed-hint" class="muted">Just type. No Enter needed.</p></div>`;
   const input = root.querySelector('#speed-answer');
   const end = performance.now() + settings.duration * 1000;
   let started = performance.now(), current, active = true, timer;

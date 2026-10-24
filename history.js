@@ -26,7 +26,7 @@ export function mountHistory(root, getState) {
       const m=runMetrics(r), speed=r.results?.mode==='speed';
       const info=speed?`${r.results.duration}s · ${(r.results.settings?.operations||[]).join(' ')}`:r.results?.difficulty||'foundation';
       const status=!r.user_id?'Saved in this browser':pending.some(p=>p.id===r.id)?'Saved locally · awaiting sync':'Synced';
-      return `<details class="saved-run" data-run="${escapeHTML(r.id)}" ${open.has(r.id)?'open':''}><summary><span><strong>${speed?'Math speed drill':r.activity==='math'?'Mental math':'Probability'}</strong><small>${escapeHTML(new Date(r.completed_at).toLocaleString())} · ${escapeHTML(info)}</small></span><span class="log-score">${speed?`${m.correct} correct`:`${m.correct} / ${m.attempts.length}`}<small>${status}</small><small>View details ▾</small></span></summary>${detail(r)}</details>`;
+      return `<details class="saved-run" data-run="${escapeHTML(r.id)}" ${open.has(r.id)?'open':''}><summary><span><strong>${speed?escapeHTML(r.results.settings?.target||'Math speed drill'):r.activity==='math'?'Mental math':'Probability'}</strong><small>${escapeHTML(new Date(r.completed_at).toLocaleString())} · ${escapeHTML(info)}</small></span><span class="log-score">${speed?`${m.correct} correct`:`${m.correct} / ${m.attempts.length}`}<small>${status}</small><small>View details ▾</small></span></summary>${detail(r)}</details>`;
     }).join(''):'<div class="empty"><strong>No saved runs yet.</strong>Finish a timed round to start your history. Previous unsaved rounds cannot be recovered.</div>'}
     ${filtered.length>limit?'<button id="more-runs" class="quiet">Show 10 older runs</button>':''}`;
     root.querySelector('#history-filter').onchange=e=>{filter=e.target.value;limit=10;render();};

@@ -1,9 +1,9 @@
-import {mountTargeted} from './targeted.js?v=fractions-20261024';
-import {mountAnalytics} from './analytics.js?v=fractions-20261024';
+import {mountTargeted} from './targeted.js?v=fractions2-20261024';
+import {mountAnalytics} from './analytics.js?v=fractions2-20261024';
 import {question,parseAnswer,isCorrect,summary} from './core.js';
 import {readRuns,writeRun,mergeRuns,migratePending} from './run-store.js';
-import {mountHistory} from './history.js?v=fractions-20261024';
-import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=fractions-20261024';
+import {mountHistory} from './history.js?v=fractions2-20261024';
+import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=fractions2-20261024';
 const URL='https://lhxsquzmblnfhauqrhoh.supabase.co';
 const KEY='sb_publishable_aRzHnFzqPywqtRqJi-chkg_wLp_Yh9i';
 const OWNER='46df99c8-daed-4eee-8aea-974e6fbd1a91';

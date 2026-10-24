@@ -4,3 +4,5 @@ test('review uses stored questions and two digit drills respect ranges',()=>{con
 test('target scores never mix with standard scores',()=>{const settings=targetSettings('+',60,{questions:[]});const row={results:{mode:'speed',duration:60,settings}};const key=settingsKey(row);delete settings.target;assert.notEqual(key,settingsKey(row));});
 import {parseAnswer,isCorrect} from './core.js';
 test('fractions and decimals generate correct answers for every operation',()=>{for(const type of ['fractions','decimals'])for(const op of ['+','−','×','÷']){const s=targetSettings(type,60,{});s.operations=[op];for(let i=0;i<100;i++){const q=speedQuestion(s);const [left,,right]=q.prompt.split(' '),a=parseAnswer(left),b=parseAnswer(right);const expected=op==='+'?a+b:op==='−'?a-b:op==='×'?a*b:a/b;assert.ok(Math.abs(q.answer-expected)<1e-10);assert.ok(Number.isFinite(q.answer));assert.ok(isCorrect(parseAnswer(q.answer.toFixed(2)),q.answer));}}});
+import {settingsMarkup} from './speed.js';
+test('standard setup renders without round-specific controls',()=>{const markup=settingsMarkup();assert.ok(markup.includes('settings-error'));assert.ok(!markup.includes('check-speed'));});

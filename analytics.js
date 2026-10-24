@@ -10,9 +10,9 @@ export function analyze(rows,key){
  const operations=new Map(),types=new Map();
  for(const r of runs)for(const a of r.results.attempts||[]){
   if(!a.correct||!Number.isFinite(a.seconds)||a.seconds<0)continue;
-  const m=String(a.prompt).match(/^(\d+)\s*([+−×÷])\s*(\d+)$/);if(!m)continue;
+  const m=String(a.prompt).match(/^(\d+(?:[./]\d+)?)\s*([+−×÷])\s*(\d+(?:[./]\d+)?)$/);if(!m)continue;
   const name={'+':'Addition','−':'Subtraction','×':'Multiplication','÷':'Division'}[m[2]];
-  for(const [map,label] of [[operations,name],[types,name+' · '+m[1].length+' digit / '+m[3].length+' digit']]){const v=map.get(label)||{label,count:0,total:0};v.count++;v.total+=a.seconds;map.set(label,v);}
+  for(const [map,label] of [[operations,name],[types,name+' · '+(r.results.settings?.numberType|| (m[1].length+' digit / '+m[3].length+' digit'))]]){const v=map.get(label)||{label,count:0,total:0};v.count++;v.total+=a.seconds;map.set(label,v);}
  }
  const summarize=map=>[...map.values()].map(v=>({...v,mean:v.total/v.count})).sort((a,b)=>b.mean-a.mean);
  return {points,best:points.length?Math.max(...points.map(p=>p.score)):null,operations:summarize(operations),types:summarize(types)};

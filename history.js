@@ -12,7 +12,7 @@ function detail(row) {
   const m=runMetrics(row), s=row.results?.settings, speed=row.results?.mode==='speed';
   const range = value => Array.isArray(value)&&value.length===4?`${value[0]}–${value[1]} and ${value[2]}–${value[3]}`:'Not recorded';
   return `<div class="run-detail"><dl class="run-metrics"><div><dt>Average answer</dt><dd>${m.average===null?'—':number(m.average)+'s'}</dd></div><div><dt>Fastest answer</dt><dd>${m.fastest===null?'—':number(m.fastest)+'s'}</dd></div>${speed?`<div><dt>Answers / minute</dt><dd>${m.pace===null?'—':number(m.pace)}</dd></div>`:''}</dl>
-  ${speed?`<p class="footnote">Addition ranges: ${escapeHTML(range(s?.add))}<br>Multiplication ranges: ${escapeHTML(range(s?.multiply))}<br>Subtraction and division reverse these ranges. Answer times include time spent correcting input; incomplete typing is not scored.</p>`:''}
+  ${speed&& !s?.numberType?`<p class="footnote">Addition ranges: ${escapeHTML(range(s?.add))}<br>Multiplication ranges: ${escapeHTML(range(s?.multiply))}<br>Subtraction and division reverse these ranges. Answer times include time spent correcting input; incomplete typing is not scored.</p>`:''}
   ${m.attempts.length?`<div class="answer-table-wrap" tabindex="0" aria-label="Question breakdown"><table class="answer-table"><thead><tr><th>#</th><th>Question</th><th>Your answer</th><th>Correct answer</th><th>Time</th></tr></thead><tbody>${m.attempts.map((a,i)=>`<tr><td>${i+1}</td><td>${escapeHTML(a.prompt)}</td><td>${escapeHTML(a.given)} ${a.correct?'✓':'✕'}</td><td>${escapeHTML(a.answer)}</td><td>${number(a.seconds)}s</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No questions completed in this round.</p>'}</div>`;
 }
 export function mountHistory(root, getState) {

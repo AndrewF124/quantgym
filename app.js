@@ -1,9 +1,9 @@
-import {mountTargeted} from './targeted.js?v=fractions2-20261024';
-import {mountAnalytics} from './analytics.js?v=fractions2-20261024';
+import {mountTargeted,targetSettings} from './targeted.js?v=auto-20261025';
+import {mountAnalytics} from './analytics.js?v=auto-20261025';
 import {question,parseAnswer,isCorrect,summary} from './core.js';
 import {readRuns,writeRun,mergeRuns,migratePending} from './run-store.js';
-import {mountHistory} from './history.js?v=fractions2-20261024';
-import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=fractions2-20261024';
+import {mountHistory} from './history.js?v=auto-20261025';
+import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=auto-20261025';
 const URL='https://lhxsquzmblnfhauqrhoh.supabase.co';
 const KEY='sb_publishable_aRzHnFzqPywqtRqJi-chkg_wLp_Yh9i';
 const OWNER='46df99c8-daed-4eee-8aea-974e6fbd1a91';
@@ -30,7 +30,7 @@ const renderHistory=mountHistory($('history'),()=>({rows,pending,user,guestCount
 const renderAnalytics=mountAnalytics($('analytics'),()=>rows);
 const renderTargeted=mountTargeted($('targeted'),()=>rows,config=>{
  if(session){notice('Finish or discard your current round before starting targeted practice.');return;}
- session={id:crypto.randomUUID(),owner:user?.id||null,track:'math',mode:'speed',duration:config.duration,settings:config,attempts:[]};
+ session={id:crypto.randomUUID(),owner:user?.id||null,track:config.numberType==='probability'?'probability':'math',mode:'speed',duration:config.duration,settings:config,attempts:[]};
  runSpeedRound($('practice'),config,attempts=>{session.attempts=attempts;finish();},resetPractice);
  $('practice').scrollIntoView({block:'start',behavior:'smooth'});
 });
@@ -53,14 +53,20 @@ async function sync(){
 function setupPractice(){
  document.querySelectorAll('[data-track]').forEach(b=>{b.classList.toggle('selected',b.dataset.track===track);b.setAttribute('aria-pressed',String(b.dataset.track===track));b.onclick=()=>{track=b.dataset.track;setupPractice();};});
  let settings=$('speed-settings');if(!settings){settings=document.createElement('div');settings.id='speed-settings';settings.innerHTML=settingsMarkup();$('practice').querySelector('.start-row').before(settings);}
- settings.hidden=track!=='math';$('difficulty').parentElement.hidden=track==='math';$('practice').querySelector('.pill').textContent=track==='math'?'Beat the clock':'10 questions · your pace';
+ let probabilityDuration=$('probability-duration-wrap');if(!probabilityDuration){probabilityDuration=document.createElement('div');probabilityDuration.id='probability-duration-wrap';probabilityDuration.innerHTML='<label>Format <select id="probability-format"><option value="timed">Timed drill</option><option value="guided">10 questions with feedback</option></select></label> <label>Duration <select id="probability-duration"><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120" selected>2 minutes</option><option value="300">5 minutes</option></select></label>';$('practice').querySelector('.start-row').prepend(probabilityDuration);}probabilityDuration.hidden=track!=='probability';
+ settings.hidden=track!=='math';$('difficulty').parentElement.hidden=track==='math';$('practice').querySelector('.pill').textContent=track==='math'?'Beat the clock':'Timed probability';
  $('practice').querySelector('[data-track="math"] strong').textContent='Math speed drill';$('practice').querySelector('[data-track="math"] > span:not(.track-icon)').textContent='Addition, subtraction, multiplication & division';
  $('start').onclick=()=>{
   if(track==='math'){
    const config=readSettings(settings),error=validateSettings(config);$('settings-error').textContent=error;if(error)return;
    session={id:crypto.randomUUID(),owner:user?.id||null,track,mode:'speed',duration:config.duration,settings:config,attempts:[]};
    runSpeedRound($('practice'),config,attempts=>{session.attempts=attempts;finish();},resetPractice);
-  }else{session={id:crypto.randomUUID(),owner:user?.id||null,track,difficulty:$('difficulty').value,attempts:[]};showQuestion();}
+  }else{
+   if($('probability-format').value==='guided'){session={id:crypto.randomUUID(),owner:user?.id||null,track,difficulty:$('difficulty').value,attempts:[]};showQuestion();return;}
+   const config=targetSettings($('difficulty').value==='challenge'?'probability-challenge':'probability',Number($('probability-duration').value),{});
+   session={id:crypto.randomUUID(),owner:user?.id||null,track,mode:'speed',duration:config.duration,settings:config,attempts:[]};
+   runSpeedRound($('practice'),config,attempts=>{session.attempts=attempts;finish();},resetPractice);
+  }
  };
  $('practice-note').textContent=user?'Your completed sessions will sync to your private account.':'Visitors can practice and save runs in this browser only. Sign-in and cloud storage are reserved for the site owner.';
 }

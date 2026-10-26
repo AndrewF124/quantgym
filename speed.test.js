@@ -38,3 +38,14 @@ test('round scores only correct answers before deadline and completes once',t=>{
  now=30000;input.value='5';input.input();tick();
  assert.equal(completed,1);assert.equal(result.length,1);assert.equal(result[0].seconds,.5);assert.equal(input.disabled,true);
 });
+import {speedAnswerMatches} from './speed.js';
+test('auto answers accept equivalents and correct rounding, reject incomplete or nearby answers',()=>{for(const raw of ['1/4','0.25','25%'])assert.ok(speedAnswerMatches(raw,.25,true));assert.ok(speedAnswerMatches('0.33',1/3,true));for(const raw of ['','0.','1/','0.32','0.34','1/0'])assert.equal(speedAnswerMatches(raw,1/3,true),false);assert.equal(speedAnswerMatches('0',.004,true),false);assert.ok(speedAnswerMatches('0.00',.004,true));assert.equal(speedAnswerMatches('0.25',.25,false),false);});
+test('fraction and decimal rounds advance on input without submission and stop at deadline',t=>{
+ let now=0,done; t.mock.method(performance,'now',()=>now);t.mock.method(Math,'random',()=>0);t.mock.method(globalThis,'setInterval',()=>1);t.mock.method(globalThis,'clearInterval',()=>{});
+ const previous=globalThis.document;globalThis.document={addEventListener(){},removeEventListener(){}};t.after(()=>{if(previous===undefined)delete globalThis.document;else globalThis.document=previous;});
+ for(const numberType of ['fractions','decimals','probability']){
+ now=0;const elements=new Map(),root={innerHTML:'',querySelector(id){if(!elements.has(id))elements.set(id,{style:{},value:'',textContent:'',focus(){},addEventListener(event,fn){this[event]=fn;}});return elements.get(id);}};
+ runSpeedRound(root,{...settings,numberType,duration:30},a=>done=a,()=>{});const input=root.querySelector('#speed-answer');input.value='1/';input.input();assert.equal(root.querySelector('#round-score').textContent,'');input.value=numberType==='fractions'?'1':numberType==='decimals'?'0.2':'1/4';now=500;input.input();assert.equal(root.querySelector('#round-score').textContent,1);assert.equal(input.value,'');now=30000;input.input();assert.equal(done.length,1);assert.equal(done[0].seconds,.5);
+ }
+});
+test('probability generator includes topics and worked explanations at both levels',()=>{for(const difficulty of ['foundation','challenge'])for(const r of [0,.3,.6,.9]){const q=speedQuestion({...settings,numberType:'probability',difficulty},()=>r);assert.ok(Number.isFinite(q.answer));assert.ok(q.topic);assert.ok(q.explanation);}});

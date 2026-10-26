@@ -1,6 +1,11 @@
-import {parseAnswer,isCorrect} from './core.js';
+import {parseAnswer,question} from './core.js';
 // Integer arithmetic: subtraction and division invert addition and multiplication.
 export function speedQuestion(settings, random = Math.random) {
+  if(settings.numberType==='probability'){
+    const q=question('probability',settings.difficulty||'foundation',random);
+    q.topic=q.prompt.startsWith('Flip')?'Independent events':q.prompt.startsWith('A bag')?'Without replacement':q.prompt.startsWith('A game')?'Expected value':'Dice probabilities';
+    return q;
+  }
   if(settings.numberType){
     const pick=(a,b)=>a+Math.floor(random()*(b-a+1)),op=settings.operations[pick(0,settings.operations.length-1)];
     const fraction=settings.numberType==='fractions';
@@ -21,6 +26,13 @@ export function speedQuestion(settings, random = Math.random) {
   return {prompt: `${a * b} ÷ ${a}`, answer: b};
 }
 
+// Accept only exact equivalents or the correctly rounded decimal, not a nearby value.
+export function speedAnswerMatches(raw,answer,flexible=false){
+ if(!flexible)return /^\d+$/.test(raw)&&Number(raw)===answer;
+ const value=parseAnswer(raw);if(!Number.isFinite(value)||/[./]$/.test(raw.trim()))return false;
+ if(Math.abs(value-answer)<1e-10)return true;
+ return /^[+-]?(?:\d+)?\.\d{2,}$/.test(raw.trim())&&Math.abs(value-Number(answer.toFixed(2)))<1e-10;
+}
 export function validateSettings(settings) {
   if (!settings.operations.length) return 'Choose at least one operation.';
   for (const range of [settings.add, settings.multiply]) {
@@ -46,7 +58,7 @@ export function readSettings(root) {
 }
 
 export function runSpeedRound(root, settings, onComplete, onCancel) {
-  root.innerHTML=`<div class="section-label"><span>MENTAL MATH / ${settings.target?'TARGETED PRACTICE':'SPEED DRILL'}</span><button id="stop-speed" class="text-button">Discard round ✕</button></div><div class="speed-metrics"><div><span>TIME LEFT</span><strong id="time-left" role="timer"></strong></div><div><span>SCORE</span><strong id="round-score">0</strong></div></div><div class="progress"><span id="time-bar" style="width:100%"></span></div><div class="speed-stage"><h2 id="speed-question" aria-live="polite"></h2><label for="speed-answer">Your answer</label><input id="speed-answer" inputmode="${settings.numberType?'text':'numeric'}" autocomplete="off" aria-describedby="speed-hint"><p id="speed-hint" class="muted">${settings.numberType?'Enter a fraction or decimal (round to 2 decimal places if needed), then press Enter or Check answer.':'Just type. No Enter needed.'}</p>${settings.numberType?'<button id="check-speed" class="accent">Check answer</button><p id="speed-error" role="status"></p>':''}</div>`;
+  root.innerHTML=`<div class="section-label"><span>${settings.numberType==='probability'?'PROBABILITY':'MENTAL MATH'} / ${settings.target?'TARGETED PRACTICE':'SPEED DRILL'}</span><button id="stop-speed" class="text-button">Discard round ✕</button></div><div class="speed-metrics"><div><span>TIME LEFT</span><strong id="time-left" role="timer"></strong></div><div><span>SCORE</span><strong id="round-score">0</strong></div></div><div class="progress"><span id="time-bar" style="width:100%"></span></div><div class="speed-stage"><h2 id="speed-question" style="${settings.numberType==='probability'?'font-size:clamp(20px,3vw,30px);line-height:1.5':''}" aria-live="polite"></h2><label for="speed-answer">Your answer</label><input id="speed-answer" inputmode="${settings.numberType?'text':'numeric'}" autocomplete="off" aria-describedby="speed-hint"><p id="speed-hint" class="muted">${settings.numberType?'Type a fraction, decimal, or percentage. Correct answers advance automatically; use 2 decimal places when rounding.':'Just type. No Enter needed.'}</p>${settings.numberType?'<button id="check-speed" class="accent">Check answer</button><p id="speed-error" role="status"></p>':''}</div>`;
   const input = root.querySelector('#speed-answer');
   const end = performance.now() + settings.duration * 1000;
   let started = performance.now(), current, active = true, timer;
@@ -64,13 +76,14 @@ export function runSpeedRound(root, settings, onComplete, onCancel) {
     if(!active)return;
     if(performance.now()>=end){stop();return;}
     const raw=input.value.trim();
-    const valid=settings.numberType?isCorrect(parseAnswer(raw),current.answer):/^\d+$/.test(raw)&&Number(raw)===current.answer;
-    if(!valid){if(settings.numberType)root.querySelector('#speed-error').textContent='Not quite. Try again.';return;}
+    const valid=speedAnswerMatches(raw,current.answer,Boolean(settings.numberType));
+    if(!valid)return;
     if(settings.numberType)root.querySelector('#speed-error').textContent='';
     attempts.push({...current,given:raw,correct:true,seconds:(performance.now()-started)/1000});
     root.querySelector('#round-score').textContent=attempts.length;next();
   };
-  if(settings.numberType){input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submit();}});root.querySelector('#check-speed').onclick=submit;}else input.addEventListener('input',submit);
+  if(settings.numberType){input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submit();}});root.querySelector('#check-speed').onclick=submit;}
+  input.addEventListener('input',submit);
   root.querySelector('#stop-speed').onclick=()=>{if(!active)return;active=false;clearInterval(timer);document.removeEventListener('visibilitychange',tick);onCancel();};
   next();tick();timer=setInterval(tick,100);document.addEventListener('visibilitychange',tick);
 }

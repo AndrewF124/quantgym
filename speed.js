@@ -1,3 +1,4 @@
+import {numberRanges} from './number-ranges.js';
 import {parseAnswer,question} from './core.js';
 // Integer arithmetic: subtraction and division invert addition and multiplication.
 export function speedQuestion(settings, random = Math.random) {
@@ -9,7 +10,9 @@ export function speedQuestion(settings, random = Math.random) {
   if(settings.numberType){
     const pick=(a,b)=>a+Math.floor(random()*(b-a+1)),op=settings.operations[pick(0,settings.operations.length-1)];
     const fraction=settings.numberType==='fractions';
-    let a=pick(1,9),b=pick(1,9),da=fraction?pick(2,12):10,db=fraction?pick(2,12):10;
+    const ranges=numberRanges(settings),scale=fraction?1:10**ranges.places;
+    const lo=fraction?ranges.numerator[0]:Math.round(ranges.range[0]*scale),hi=fraction?ranges.numerator[1]:Math.round(ranges.range[1]*scale);
+    let a=pick(lo,hi),b=pick(lo,hi),da=fraction?pick(...ranges.denominator):scale,db=fraction?pick(...ranges.denominator):scale;
     const fmt=(n,d)=>fraction?n+'/'+d:String(n/d);
     if(op==='−'&&a/da<b/db){[a,b]=[b,a];[da,db]=[db,da];}
     const answer=op==='+'?a/da+b/db:op==='−'?a/da-b/db:op==='×'?(a*b)/(da*db):(a*db)/(da*b);

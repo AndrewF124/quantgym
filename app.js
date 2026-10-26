@@ -1,9 +1,9 @@
-import {mountTargeted,targetSettings} from './targeted.js?v=auto-20261025';
-import {mountAnalytics} from './analytics.js?v=auto-20261025';
+import {mountTargeted,targetSettings} from './targeted.js?v=ranges-20261026';
+import {mountAnalytics} from './analytics.js?v=ranges-20261026';
 import {question,parseAnswer,isCorrect,summary} from './core.js';
 import {readRuns,writeRun,mergeRuns,migratePending} from './run-store.js';
-import {mountHistory} from './history.js?v=auto-20261025';
-import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=auto-20261025';
+import {mountHistory} from './history.js?v=ranges-20261026';
+import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=ranges-20261026';
 const URL='https://lhxsquzmblnfhauqrhoh.supabase.co';
 const KEY='sb_publishable_aRzHnFzqPywqtRqJi-chkg_wLp_Yh9i';
 const OWNER='46df99c8-daed-4eee-8aea-974e6fbd1a91';

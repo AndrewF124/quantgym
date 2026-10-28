@@ -1,9 +1,10 @@
-import {mountTargeted,targetSettings} from './targeted.js?v=ranges-20261026';
-import {mountAnalytics} from './analytics.js?v=ranges-20261026';
+import {estimationQuestion,estimationGrade} from './estimation.js';
+import {mountTargeted,targetSettings} from './targeted.js?v=estimate-20261027';
+import {mountAnalytics} from './analytics.js?v=estimate-20261027';
 import {question,parseAnswer,isCorrect,summary} from './core.js';
 import {readRuns,writeRun,mergeRuns,migratePending} from './run-store.js';
-import {mountHistory} from './history.js?v=ranges-20261026';
-import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=ranges-20261026';
+import {mountHistory} from './history.js?v=estimate-20261027';
+import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=estimate-20261027';
 const URL='https://lhxsquzmblnfhauqrhoh.supabase.co';
 const KEY='sb_publishable_aRzHnFzqPywqtRqJi-chkg_wLp_Yh9i';
 const OWNER='46df99c8-daed-4eee-8aea-974e6fbd1a91';
@@ -54,7 +55,7 @@ function setupPractice(){
  document.querySelectorAll('[data-track]').forEach(b=>{b.classList.toggle('selected',b.dataset.track===track);b.setAttribute('aria-pressed',String(b.dataset.track===track));b.onclick=()=>{track=b.dataset.track;setupPractice();};});
  let settings=$('speed-settings');if(!settings){settings=document.createElement('div');settings.id='speed-settings';settings.innerHTML=settingsMarkup();$('practice').querySelector('.start-row').before(settings);}
  let probabilityDuration=$('probability-duration-wrap');if(!probabilityDuration){probabilityDuration=document.createElement('div');probabilityDuration.id='probability-duration-wrap';probabilityDuration.innerHTML='<label>Format <select id="probability-format"><option value="timed">Timed drill</option><option value="guided">10 questions with feedback</option></select></label> <label>Duration <select id="probability-duration"><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120" selected>2 minutes</option><option value="300">5 minutes</option></select></label>';$('practice').querySelector('.start-row').prepend(probabilityDuration);}probabilityDuration.hidden=track!=='probability';
- settings.hidden=track!=='math';$('difficulty').parentElement.hidden=track==='math';$('practice').querySelector('.pill').textContent=track==='math'?'Beat the clock':'Timed probability';
+ settings.hidden=track!=='math';$('difficulty').parentElement.hidden=track==='math';$('practice').querySelector('.pill').textContent=track==='math'?'Beat the clock':track==='estimation'?'10 estimates · your pace':'Timed probability';
  $('practice').querySelector('[data-track="math"] strong').textContent='Math speed drill';$('practice').querySelector('[data-track="math"] > span:not(.track-icon)').textContent='Addition, subtraction, multiplication & division';
  $('start').onclick=()=>{
   if(track==='math'){
@@ -62,6 +63,7 @@ function setupPractice(){
    session={id:crypto.randomUUID(),owner:user?.id||null,track,mode:'speed',duration:config.duration,settings:config,attempts:[]};
    runSpeedRound($('practice'),config,attempts=>{session.attempts=attempts;finish();},resetPractice);
   }else{
+   if(track==='estimation'){session={id:crypto.randomUUID(),owner:user?.id||null,track,difficulty:$('difficulty').value,attempts:[]};showQuestion();return;}
    if($('probability-format').value==='guided'){session={id:crypto.randomUUID(),owner:user?.id||null,track,difficulty:$('difficulty').value,attempts:[]};showQuestion();return;}
    const config=targetSettings($('difficulty').value==='challenge'?'probability-challenge':'probability',Number($('probability-duration').value),{});
    session={id:crypto.randomUUID(),owner:user?.id||null,track,mode:'speed',duration:config.duration,settings:config,attempts:[]};
@@ -72,12 +74,12 @@ function setupPractice(){
 }
 function resetPractice(){session=null;$('practice').innerHTML=initialPractice;setupPractice();}
 function showQuestion(){
- const q=question(session.track,session.difficulty);const started=performance.now();
- $('practice').innerHTML=`<div class="section-label"><span>${session.track==='math'?'MENTAL MATH':'PROBABILITY'} / ${session.attempts.length+1} OF 10</span><button id="exit" class="text-button">End session ✕</button></div><div class="progress"><span style="width:${session.attempts.length*10}%"></span></div><h2 class="question">${escape(q.prompt)}</h2><form id="answer-form" class="answer-form"><label for="answer">Enter a number, fraction, or percentage. Round to 2 decimal places if needed.</label><input id="answer" autocomplete="off" inputmode="text" required autofocus aria-describedby="answer-error"><p id="answer-error" role="alert"></p><button class="accent">Check answer ↗</button></form><div id="feedback" aria-live="polite"></div>`;
+ const q=session.track==='estimation'?estimationQuestion(session.difficulty):question(session.track,session.difficulty);const started=performance.now();
+ $('practice').innerHTML=`<div class="section-label"><span>${session.track==='estimation'?'ESTIMATION':session.track==='math'?'MENTAL MATH':'PROBABILITY'} / ${session.attempts.length+1} OF 10</span><button id="exit" class="text-button">End session ✕</button></div><div class="progress"><span style="width:${session.attempts.length*10}%"></span></div><h2 class="question">${escape(q.prompt)}</h2><form id="answer-form" class="answer-form"><label for="answer">${session.track==='estimation'?'Aim within '+(q.tolerance*100)+'% of the exact answer. Enter your estimate, then check it.':'Enter a number, fraction, or percentage. Round to 2 decimal places if needed.'}</label><input id="answer" autocomplete="off" inputmode="text" required autofocus aria-describedby="answer-error"><p id="answer-error" role="alert"></p><button class="accent">Check answer ↗</button></form><div id="feedback" aria-live="polite"></div>`;
  $('answer').focus();$('exit').onclick=()=>{if(confirm('End this session? Incomplete sessions are not saved.'))resetPractice();};
  $('answer-form').onsubmit=e=>{e.preventDefault();const raw=$('answer').value,value=parseAnswer(raw);if(!Number.isFinite(value)){$('answer-error').textContent='Enter a valid number, such as 0.25, 1/4, or 25%.';return;}
-  const correct=isCorrect(value,q.answer);session.attempts.push({...q,given:raw,correct,seconds:Math.round((performance.now()-started)/100)/10});$('answer-form').querySelector('button').disabled=true;$('answer').disabled=true;$('answer-error').textContent='';
-  $('feedback').innerHTML=`<div class="feedback"><strong>${correct?'Correct. Nice work.':`Answer: ${Number(q.answer.toFixed(4))}`}</strong><div>${escape(q.explanation)}</div></div><button id="next" class="accent">${session.attempts.length===10?'View results':'Next question'} →</button>`;
+  const grade=session.track==='estimation'?estimationGrade(value,q.answer,q.tolerance):null;const correct=grade?grade.correct:isCorrect(value,q.answer);session.attempts.push({...q,given:raw,correct,seconds:Math.round((performance.now()-started)/100)/10});$('answer-form').querySelector('button').disabled=true;$('answer').disabled=true;$('answer-error').textContent='';
+  $('feedback').innerHTML=`<div class="feedback"><strong>${correct?'Correct. Nice work.':`Answer: ${Number(q.answer.toFixed(4))}`}</strong>${grade?'<p>Your estimate was '+(grade.relativeError*100).toFixed(2)+'% off. Exact answer: '+Number(q.answer.toFixed(6))+'.</p>':''}<div>${escape(q.explanation)}</div></div><button id="next" class="accent">${session.attempts.length===10?'View results':'Next question'} →</button>`;
   $('next').focus();$('next').onclick=()=>session.attempts.length===10?finish():showQuestion();
  };
 }

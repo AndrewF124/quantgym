@@ -1,3 +1,4 @@
+import {parseAnswer} from './core.js';
 import {rangesLabel} from './number-ranges.js';
 export const escapeHTML = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number = n => Number.isFinite(Number(n)) ? Number(n).toFixed(2) : '—';
@@ -15,10 +16,10 @@ function detail(row) {
   return `<div class="run-detail"><dl class="run-metrics"><div><dt>Average answer</dt><dd>${m.average===null?'—':number(m.average)+'s'}</dd></div><div><dt>Fastest answer</dt><dd>${m.fastest===null?'—':number(m.fastest)+'s'}</dd></div>${speed?`<div><dt>Answers / minute</dt><dd>${m.pace===null?'—':number(m.pace)}</dd></div>`:''}</dl>
   ${s?.numberType?'<p class="footnote">'+escapeHTML(rangesLabel(s))+'</p>':''}
   ${speed&& !s?.numberType?`<p class="footnote">Addition ranges: ${escapeHTML(range(s?.add))}<br>Multiplication ranges: ${escapeHTML(range(s?.multiply))}<br>Subtraction and division reverse these ranges. Answer times include time spent correcting input; incomplete typing is not scored.</p>`:''}
-  ${m.attempts.length?`<div class="answer-table-wrap" tabindex="0" aria-label="Question breakdown"><table class="answer-table"><thead><tr><th>#</th><th>Question</th><th>Your answer</th><th>Correct answer</th><th>Time</th></tr></thead><tbody>${m.attempts.map((a,i)=>`<tr><td>${i+1}</td><td>${escapeHTML(a.prompt)}${a.explanation?'<details><summary>Explanation</summary>'+escapeHTML(a.explanation)+'</details>':''}</td><td>${escapeHTML(a.given)} ${a.correct?'✓':'✕'}</td><td>${escapeHTML(a.answer)}</td><td>${number(a.seconds)}s</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No questions completed in this round.</p>'}</div>`;
+  ${m.attempts.length?`<div class="answer-table-wrap" tabindex="0" aria-label="Question breakdown"><table class="answer-table"><thead><tr><th>#</th><th>Question</th><th>Your answer</th><th>Correct answer</th><th>Time</th></tr></thead><tbody>${m.attempts.map((a,i)=>`<tr><td>${i+1}</td><td>${escapeHTML(a.prompt)}${a.explanation?'<details><summary>Explanation</summary>'+escapeHTML(a.explanation)+'</details>':''}</td><td>${escapeHTML(a.given)}${a.tolerance?' ('+(Math.abs(parseAnswer(String(a.given))-a.answer)/Math.abs(a.answer)*100).toFixed(2)+'% off)':''} ${a.correct?'✓':'✕'}</td><td>${escapeHTML(a.answer)}</td><td>${number(a.seconds)}s</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No questions completed in this round.</p>'}</div>`;
 }
 export function mountHistory(root, getState) {
-  let filter='speed', limit=10;
+  let filter='all', limit=10;
   const open=new Set();
   function render() {
     const {rows,pending,user,guestCount}=getState();
@@ -28,7 +29,7 @@ export function mountHistory(root, getState) {
       const m=runMetrics(r), speed=r.results?.mode==='speed';
       const info=speed?`${r.results.duration}s · ${(r.results.settings?.operations||[]).join(' ')}`:r.results?.difficulty||'foundation';
       const status=!r.user_id?'Saved in this browser':pending.some(p=>p.id===r.id)?'Saved locally · awaiting sync':'Synced';
-      return `<details class="saved-run" data-run="${escapeHTML(r.id)}" ${open.has(r.id)?'open':''}><summary><span><strong>${speed?escapeHTML(r.results.settings?.target||'Math speed drill'):r.activity==='math'?'Mental math':'Probability'}</strong><small>${escapeHTML(new Date(r.completed_at).toLocaleString())} · ${escapeHTML(info)}</small></span><span class="log-score">${speed?`${m.correct} correct`:`${m.correct} / ${m.attempts.length}`}<small>${status}</small><small>View details ▾</small></span></summary>${detail(r)}</details>`;
+      return `<details class="saved-run" data-run="${escapeHTML(r.id)}" ${open.has(r.id)?'open':''}><summary><span><strong>${speed?escapeHTML(r.results.settings?.target||'Math speed drill'):r.activity==='estimation'?'Estimation':r.activity==='math'?'Mental math':'Probability'}</strong><small>${escapeHTML(new Date(r.completed_at).toLocaleString())} · ${escapeHTML(info)}</small></span><span class="log-score">${speed?`${m.correct} correct`:`${m.correct} / ${m.attempts.length}`}<small>${status}</small><small>View details ▾</small></span></summary>${detail(r)}</details>`;
     }).join(''):'<div class="empty"><strong>No saved runs yet.</strong>Finish a timed round to start your history. Previous unsaved rounds cannot be recovered.</div>'}
     ${filtered.length>limit?'<button id="more-runs" class="quiet">Show 10 older runs</button>':''}`;
     root.querySelector('#history-filter').onchange=e=>{filter=e.target.value;limit=10;render();};

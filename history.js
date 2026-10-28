@@ -1,3 +1,4 @@
+import {reflexSummary,reflexDetails} from './reflex.js';
 import {parseAnswer} from './core.js';
 import {rangesLabel} from './number-ranges.js';
 export const escapeHTML = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -11,6 +12,7 @@ export function runMetrics(row) {
   return {attempts,correct,average:timed.length?seconds/timed.length:null,fastest:timed.length?Math.min(...timed.map(a=>a.seconds)):null,pace:duration>0?correct*60/duration:null};
 }
 function detail(row) {
+  if(row.results?.mode==='reflex')return reflexDetails(row.results);
   const m=runMetrics(row), s=row.results?.settings, speed=row.results?.mode==='speed';
   const range = value => Array.isArray(value)&&value.length===4?`${value[0]}–${value[1]} and ${value[2]}–${value[3]}`:'Not recorded';
   return `<div class="run-detail"><dl class="run-metrics"><div><dt>Average answer</dt><dd>${m.average===null?'—':number(m.average)+'s'}</dd></div><div><dt>Fastest answer</dt><dd>${m.fastest===null?'—':number(m.fastest)+'s'}</dd></div>${speed?`<div><dt>Answers / minute</dt><dd>${m.pace===null?'—':number(m.pace)}</dd></div>`:''}</dl>
@@ -27,9 +29,9 @@ export function mountHistory(root, getState) {
     root.innerHTML=`<div class="history-controls"><label>Show <select id="history-filter"><option value="speed" ${filter==='speed'?'selected':''}>Timed drills</option><option value="all" ${filter==='all'?'selected':''}>All practice</option></select></label><button id="export-runs" class="quiet" ${filtered.length?'':'disabled'}>Export JSON ↓</button></div><p class="footnote">${filtered.length} saved ${filtered.length===1?'run':'runs'} · ${user?'Personal account':'This browser only · cloud storage is owner-only'}</p>${user&&guestCount?`<button id="import-runs" class="quiet">Save ${guestCount} browser ${guestCount===1?'run':'runs'} to my account</button>`:''}
     ${filtered.length?filtered.slice(0,limit).map(r=>{
       const m=runMetrics(r), speed=r.results?.mode==='speed';
-      const info=speed?`${r.results.duration}s · ${(r.results.settings?.operations||[]).join(' ')}`:r.results?.difficulty||'foundation';
+      const info=r.results?.mode==='reflex'?'5 trials':speed?`${r.results.duration}s · ${(r.results.settings?.operations||[]).join(' ')}`:r.results?.difficulty||'foundation';
       const status=!r.user_id?'Saved in this browser':pending.some(p=>p.id===r.id)?'Saved locally · awaiting sync':'Synced';
-      return `<details class="saved-run" data-run="${escapeHTML(r.id)}" ${open.has(r.id)?'open':''}><summary><span><strong>${speed?escapeHTML(r.results.settings?.target||'Math speed drill'):r.activity==='estimation'?'Estimation':r.activity==='math'?'Mental math':'Probability'}</strong><small>${escapeHTML(new Date(r.completed_at).toLocaleString())} · ${escapeHTML(info)}</small></span><span class="log-score">${speed?`${m.correct} correct`:`${m.correct} / ${m.attempts.length}`}<small>${status}</small><small>View details ▾</small></span></summary>${detail(r)}</details>`;
+      return `<details class="saved-run" data-run="${escapeHTML(r.id)}" ${open.has(r.id)?'open':''}><summary><span><strong>${r.results?.mode==='reflex'?(r.results.game==='reaction'?'Reaction speed':'Timing challenge'):speed?escapeHTML(r.results.settings?.target||'Math speed drill'):r.activity==='estimation'?'Estimation':r.activity==='math'?'Mental math':'Probability'}</strong><small>${escapeHTML(new Date(r.completed_at).toLocaleString())} · ${escapeHTML(info)}</small></span><span class="log-score">${r.results?.mode==='reflex'?reflexSummary(r.results):speed?`${m.correct} correct`:`${m.correct} / ${m.attempts.length}`}<small>${status}</small><small>View details ▾</small></span></summary>${detail(r)}</details>`;
     }).join(''):'<div class="empty"><strong>No saved runs yet.</strong>Finish a timed round to start your history. Previous unsaved rounds cannot be recovered.</div>'}
     ${filtered.length>limit?'<button id="more-runs" class="quiet">Show 10 older runs</button>':''}`;
     root.querySelector('#history-filter').onchange=e=>{filter=e.target.value;limit=10;render();};

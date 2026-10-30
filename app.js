@@ -1,11 +1,11 @@
-import {runReflex,reflexSummary,reflexDetails} from './reflex.js';
+import {runReflex,reflexSummary,reflexDetails} from './reflex.js?v=circles-20261029';
 import {estimationQuestion,estimationGrade} from './estimation.js';
-import {mountTargeted,targetSettings} from './targeted.js?v=reflex-20261028';
-import {mountAnalytics} from './analytics.js?v=reflex-20261028';
+import {mountTargeted,targetSettings} from './targeted.js?v=circles-20261029';
+import {mountAnalytics} from './analytics.js?v=circles-20261029';
 import {question,parseAnswer,isCorrect,summary} from './core.js';
 import {readRuns,writeRun,mergeRuns,migratePending} from './run-store.js';
-import {mountHistory} from './history.js?v=reflex-20261028';
-import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=reflex-20261028';
+import {mountHistory} from './history.js?v=circles-20261029';
+import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=circles-20261029';
 const URL='https://lhxsquzmblnfhauqrhoh.supabase.co';
 const KEY='sb_publishable_aRzHnFzqPywqtRqJi-chkg_wLp_Yh9i';
 const OWNER='46df99c8-daed-4eee-8aea-974e6fbd1a91';
@@ -53,11 +53,11 @@ async function sync(){
  finally{syncing=false;if(syncRequested&&user){syncRequested=false;setTimeout(sync,0);}}
 }
 function setupPractice(){
- let gameOptions=$('reflex-options');if(!gameOptions){gameOptions=document.createElement('label');gameOptions.id='reflex-options';gameOptions.innerHTML='Game <select id="reflex-mode"><option value="reaction">Reaction speed</option><option value="timing">Timing challenge</option></select>';$('practice').querySelector('.start-row').prepend(gameOptions);}gameOptions.hidden=track!=='reflex';
+ let gameOptions=$('reflex-options');if(!gameOptions){gameOptions=document.createElement('label');gameOptions.id='reflex-options';gameOptions.innerHTML='Game <select id="reflex-mode"><option value="reaction">Reaction speed</option><option value="timing">Timing challenge</option><option value="circles">Circle timing</option></select>';$('practice').querySelector('.start-row').prepend(gameOptions);}gameOptions.hidden=track!=='reflex';
  document.querySelectorAll('[data-track]').forEach(b=>{b.classList.toggle('selected',b.dataset.track===track);b.setAttribute('aria-pressed',String(b.dataset.track===track));b.onclick=()=>{track=b.dataset.track;setupPractice();};});
  let settings=$('speed-settings');if(!settings){settings=document.createElement('div');settings.id='speed-settings';settings.innerHTML=settingsMarkup();$('practice').querySelector('.start-row').before(settings);}
  let probabilityDuration=$('probability-duration-wrap');if(!probabilityDuration){probabilityDuration=document.createElement('div');probabilityDuration.id='probability-duration-wrap';probabilityDuration.innerHTML='<label>Format <select id="probability-format"><option value="timed">Timed drill</option><option value="guided">10 questions with feedback</option></select></label> <label>Duration <select id="probability-duration"><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120" selected>2 minutes</option><option value="300">5 minutes</option></select></label>';$('practice').querySelector('.start-row').prepend(probabilityDuration);}probabilityDuration.hidden=track!=='probability';
- settings.hidden=track!=='math';$('difficulty').parentElement.hidden=track==='math'||track==='reflex';$('practice').querySelector('.pill').textContent=track==='math'?'Beat the clock':track==='reflex'?'5 trials':track==='estimation'?'10 estimates · your pace':'Timed probability';
+ settings.hidden=track!=='math';$('difficulty').parentElement.hidden=track==='math'||track==='reflex';$('practice').querySelector('.pill').textContent=track==='math'?'Beat the clock':track==='reflex'?'Choose a game':track==='estimation'?'10 estimates · your pace':'Timed probability';
  $('practice').querySelector('[data-track="math"] strong').textContent='Math speed drill';$('practice').querySelector('[data-track="math"] > span:not(.track-icon)').textContent='Addition, subtraction, multiplication & division';
  $('start').onclick=()=>{
   if(track==='reflex'){session={id:crypto.randomUUID(),owner:user?.id||null,track:'math',mode:'reflex',attempts:[]};runReflex($('practice'),$('reflex-mode').value,result=>{session.gameResult=result;finish();},resetPractice);return;}

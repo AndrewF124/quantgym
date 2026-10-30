@@ -1,8 +1,10 @@
+import {runMixedGame,mixedSummary,mixedDetails} from './mixed-game.js';
 import {runCircleGame} from './circle-game.js';
 export function timingResult(elapsed,duration=2000,target=.7,width=.1){const errorMs=elapsed-duration*target;return {errorMs,hit:Math.abs(errorMs)<=duration*width/2};}
-export function reflexSummary(results){const trials=results.trials||[],valid=trials.filter(t=>t.status==='valid');if(results.game==='reaction')return valid.length?Math.round(valid.reduce((n,t)=>n+t.ms,0)/valid.length)+' ms average':'No valid reactions';return trials.filter(t=>t.hit).length+' / '+trials.length+' hits';}
-export function reflexDetails(results){const trials=results.trials||[];return '<p>'+reflexSummary(results)+'</p><ol>'+trials.map(t=>'<li>'+ (results.game==='reaction'?(t.status==='valid'?Math.round(t.ms)+' ms':t.status==='early'?'False start':'Missed signal'):results.game==='circles'?(t.status==='miss'?'Expired':(t.hit?'Hit':'Miss')+' · '+Math.round(Math.abs(t.errorDeg))+'° from arc center'):(t.status==='miss'?'Missed target':(t.hit?'Hit':'Miss')+' · '+Math.round(Math.abs(t.errorMs))+' ms '+(t.errorMs<0?'early':'late')) )+'</li>').join('')+'</ol><p class="footnote">Device, display, and input latency affect results. Compare on the same device. Hidden-tab trials are restarted.</p>';}
+export function reflexSummary(results){if(results.game==='mixed')return mixedSummary(results);const trials=results.trials||[],valid=trials.filter(t=>t.status==='valid');if(results.game==='reaction')return valid.length?Math.round(valid.reduce((n,t)=>n+t.ms,0)/valid.length)+' ms average':'No valid reactions';return trials.filter(t=>t.hit).length+' / '+trials.length+' hits';}
+export function reflexDetails(results){if(results.game==='mixed')return mixedDetails(results);const trials=results.trials||[];return '<p>'+reflexSummary(results)+'</p><ol>'+trials.map(t=>'<li>'+ (results.game==='reaction'?(t.status==='valid'?Math.round(t.ms)+' ms':t.status==='early'?'False start':'Missed signal'):results.game==='circles'?(t.status==='miss'?'Expired':(t.hit?'Hit':'Miss')+' · '+Math.round(Math.abs(t.errorDeg))+'° from arc center'):(t.status==='miss'?'Missed target':(t.hit?'Hit':'Miss')+' · '+Math.round(Math.abs(t.errorMs))+' ms '+(t.errorMs<0?'early':'late')) )+'</li>').join('')+'</ol><p class="footnote">Device, display, and input latency affect results. Compare on the same device. Hidden-tab trials are restarted.</p>';}
 export function runReflex(root,game,onComplete,onCancel){
+ if(game==='mixed')return runMixedGame(root,onComplete,onCancel);
  if(game==='circles')return runCircleGame(root,onComplete,onCancel);
  let active=true,state='idle',timer,frame,start=0,signal=0,trials=[];
  const reaction=game==='reaction';
@@ -18,3 +20,4 @@ export function runReflex(root,game,onComplete,onCancel){
  function visibility(){if(document.hidden&&active&&['wait','go'].includes(state)){clear();state='idle';pad.disabled=true;el('reflex-cue').textContent='Paused';el('reflex-feedback').textContent='Tab hidden. Restart this trial when ready.';next.hidden=false;next.textContent='Restart trial';}}
  pad.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();press();};pad.onkeydown=e=>{if([' ','Enter'].includes(e.key)){e.preventDefault();if(!e.repeat)press();}};pad.onclick=e=>{if(e.detail===0)press();};next.onclick=begin;el('reflex-exit').onclick=()=>{cleanup();onCancel();};document.addEventListener('visibilitychange',visibility);
 }
+

@@ -1,11 +1,12 @@
-import {runReflex,reflexSummary,reflexDetails} from './reflex.js?v=games-20261031';
+import {runProbabilitySprint} from './probability-sprint.js';
+import {runReflex,reflexSummary,reflexDetails} from './reflex.js?v=sprint-20261102';
 import {estimationQuestion,estimationGrade} from './estimation.js';
-import {mountTargeted,targetSettings} from './targeted.js?v=games-20261031';
-import {mountAnalytics} from './analytics.js?v=games-20261031';
+import {mountTargeted,targetSettings} from './targeted.js?v=sprint-20261102';
+import {mountAnalytics} from './analytics.js?v=sprint-20261102';
 import {question,parseAnswer,isCorrect,summary} from './core.js';
 import {readRuns,writeRun,mergeRuns,migratePending} from './run-store.js';
-import {mountHistory} from './history.js?v=games-20261031';
-import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=games-20261031';
+import {mountHistory} from './history.js?v=sprint-20261102';
+import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=sprint-20261102';
 const URL='https://lhxsquzmblnfhauqrhoh.supabase.co';
 const KEY='sb_publishable_aRzHnFzqPywqtRqJi-chkg_wLp_Yh9i';
 const OWNER='46df99c8-daed-4eee-8aea-974e6fbd1a91';
@@ -56,9 +57,10 @@ function setupPractice(){
  let gameOptions=$('reflex-options');if(!gameOptions){gameOptions=document.createElement('label');gameOptions.id='reflex-options';gameOptions.innerHTML='Game <select id="reflex-mode"><option value="reaction">Reaction speed</option><option value="timing">Timing challenge</option><option value="circles">Circle timing</option><option value="mixed">Circles & surprise math</option></select>';$('practice').querySelector('.start-row').prepend(gameOptions);}gameOptions.hidden=track!=='reflex';
  document.querySelectorAll('[data-track]').forEach(b=>{b.classList.toggle('selected',b.dataset.track===track);b.setAttribute('aria-pressed',String(b.dataset.track===track));b.onclick=()=>{track=b.dataset.track;setupPractice();};});
  let settings=$('speed-settings');if(!settings){settings=document.createElement('div');settings.id='speed-settings';settings.innerHTML=settingsMarkup();$('practice').querySelector('.start-row').before(settings);}
- let probabilityDuration=$('probability-duration-wrap');if(!probabilityDuration){probabilityDuration=document.createElement('div');probabilityDuration.id='probability-duration-wrap';probabilityDuration.innerHTML='<label>Format <select id="probability-format"><option value="timed">Timed drill</option><option value="guided">10 questions with feedback</option></select></label> <label>Duration <select id="probability-duration"><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120" selected>2 minutes</option><option value="300">5 minutes</option></select></label>';$('practice').querySelector('.start-row').prepend(probabilityDuration);}probabilityDuration.hidden=track!=='probability';
+ let probabilityDuration=$('probability-duration-wrap');if(!probabilityDuration){probabilityDuration=document.createElement('div');probabilityDuration.id='probability-duration-wrap';probabilityDuration.innerHTML='<label>Format <select id="probability-format"><option value="sprint">Probability sprint · coins, dice & cards</option><option value="timed">Timed drill</option><option value="guided">10 questions with feedback</option></select></label> <label>Duration <select id="probability-duration"><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120" selected>2 minutes</option><option value="300">5 minutes</option></select></label>';$('practice').querySelector('.start-row').prepend(probabilityDuration);}probabilityDuration.hidden=track!=='probability';
  settings.hidden=track!=='math';$('difficulty').parentElement.hidden=track==='math'||track==='reflex'||track==='expressions';$('practice').querySelector('.pill').textContent=track==='math'?'Beat the clock':track==='reflex'?'Choose a game':track==='expressions'?'12 expressions':track==='estimation'?'10 estimates · your pace':'Timed probability';
  $('practice').querySelector('[data-track="math"] strong').textContent='Math speed drill';$('practice').querySelector('[data-track="math"] > span:not(.track-icon)').textContent='Addition, subtraction, multiplication & division';
+ $('probability-duration').parentElement.hidden=$('probability-format').value!=='timed';$('probability-format').onchange=()=>{$('probability-duration').parentElement.hidden=$('probability-format').value!=='timed';$('difficulty').parentElement.hidden=$('probability-format').value==='sprint';};if(track==='probability'&&$('probability-format').value==='sprint')$('difficulty').parentElement.hidden=true;
  $('start').onclick=()=>{
   if(track==='reflex'||track==='expressions'){session={id:crypto.randomUUID(),owner:user?.id||null,track:'math',mode:'reflex',attempts:[]};runReflex($('practice'),track==='expressions'?'expressions':$('reflex-mode').value,result=>{session.gameResult=result;finish();},resetPractice);return;}
   if(track==='math'){
@@ -67,6 +69,7 @@ function setupPractice(){
    runSpeedRound($('practice'),config,attempts=>{session.attempts=attempts;finish();},resetPractice);
   }else{
    if(track==='estimation'){session={id:crypto.randomUUID(),owner:user?.id||null,track,difficulty:$('difficulty').value,attempts:[]};showQuestion();return;}
+   if($('probability-format').value==='sprint'){session={id:crypto.randomUUID(),owner:user?.id||null,track:'probability',mode:'sprint',attempts:[]};runProbabilitySprint($('practice'),attempts=>{session.attempts=attempts;finish();},resetPractice);return;}
    if($('probability-format').value==='guided'){session={id:crypto.randomUUID(),owner:user?.id||null,track,difficulty:$('difficulty').value,attempts:[]};showQuestion();return;}
    const config=targetSettings($('difficulty').value==='challenge'?'probability-challenge':'probability',Number($('probability-duration').value),{});
    session={id:crypto.randomUUID(),owner:user?.id||null,track,mode:'speed',duration:config.duration,settings:config,attempts:[]};
@@ -88,7 +91,7 @@ function showQuestion(){
 }
 function finish(){
  const completed=session;session=null;const correct=completed.attempts.filter(a=>a.correct).length;
- const row={id:completed.id,user_id:completed.owner,completed_at:new Date().toISOString(),activity:completed.track,results:{difficulty:completed.difficulty,attempts:completed.attempts,...(completed.mode==='reflex'?{mode:'reflex',...completed.gameResult}:{}),...(completed.mode==='speed'?{mode:'speed',duration:completed.duration,settings:completed.settings}: {})}};
+ const row={id:completed.id,user_id:completed.owner,completed_at:new Date().toISOString(),activity:completed.track,results:{...(completed.mode==='sprint'?{mode:'sprint',secondsPerQuestion:15}:{}),difficulty:completed.difficulty,attempts:completed.attempts,...(completed.mode==='reflex'?{mode:'reflex',...completed.gameResult}:{}),...(completed.mode==='speed'?{mode:'speed',duration:completed.duration,settings:completed.settings}: {})}};
  const canSave=user&&completed.owner===user.id;
  const storedRow=canSave?row:{...row,user_id:null};
  const retained=retain(storedRow,Boolean(canSave));

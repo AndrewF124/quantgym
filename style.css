@@ -16,3 +16,5 @@ body{font-family:Arial,Helvetica,sans-serif}header{min-height:72px}.brand{font-s
 .math-takeover{position:fixed;inset:0;z-index:100;background:#080808;display:grid;place-items:center;padding:24px;overflow:auto}.math-takeover>div{width:min(560px,100%);text-align:center}.math-takeover h2{font-size:clamp(36px,8vw,72px)}.math-takeover input{font-size:28px;text-align:center}.math-takeover button{margin:10px}.math-takeover .text-button{display:block;margin:24px auto}
 
 .memory-number{font:600 clamp(22px,5vw,48px) monospace;letter-spacing:.12em;text-align:center;overflow-wrap:anywhere;padding:36px 12px;border:1px solid #555;margin:24px 0}#memory-answer{font:28px monospace;text-align:center}
+
+.risk-options{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0}.risk-options button{white-space:normal;line-height:1.6;min-height:140px;font-size:20px;padding:20px}.risk-options button:disabled{opacity:.65}#risk-feedback{line-height:1.8;margin:24px 0}@media(max-width:600px){.risk-options{grid-template-columns:1fr}}

@@ -1,12 +1,12 @@
 import {runProbabilitySprint} from './probability-sprint.js';
-import {runReflex,reflexSummary,reflexDetails} from './reflex.js?v=memory-20261103';
+import {runReflex,reflexSummary,reflexDetails} from './reflex.js?v=risk-20261104';
 import {estimationQuestion,estimationGrade} from './estimation.js';
-import {mountTargeted,targetSettings} from './targeted.js?v=memory-20261103';
-import {mountAnalytics} from './analytics.js?v=memory-20261103';
+import {mountTargeted,targetSettings} from './targeted.js?v=risk-20261104';
+import {mountAnalytics} from './analytics.js?v=risk-20261104';
 import {question,parseAnswer,isCorrect,summary} from './core.js';
 import {readRuns,writeRun,mergeRuns,migratePending} from './run-store.js';
-import {mountHistory} from './history.js?v=memory-20261103';
-import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=memory-20261103';
+import {mountHistory} from './history.js?v=risk-20261104';
+import {settingsMarkup,readSettings,validateSettings,runSpeedRound} from './speed.js?v=risk-20261104';
 const URL='https://lhxsquzmblnfhauqrhoh.supabase.co';
 const KEY='sb_publishable_aRzHnFzqPywqtRqJi-chkg_wLp_Yh9i';
 const OWNER='46df99c8-daed-4eee-8aea-974e6fbd1a91';
@@ -58,11 +58,11 @@ function setupPractice(){
  document.querySelectorAll('[data-track]').forEach(b=>{b.classList.toggle('selected',b.dataset.track===track);b.setAttribute('aria-pressed',String(b.dataset.track===track));b.onclick=()=>{track=b.dataset.track;setupPractice();};});
  let settings=$('speed-settings');if(!settings){settings=document.createElement('div');settings.id='speed-settings';settings.innerHTML=settingsMarkup();$('practice').querySelector('.start-row').before(settings);}
  let probabilityDuration=$('probability-duration-wrap');if(!probabilityDuration){probabilityDuration=document.createElement('div');probabilityDuration.id='probability-duration-wrap';probabilityDuration.innerHTML='<label>Format <select id="probability-format"><option value="sprint">Probability sprint · coins, dice & cards</option><option value="timed">Timed drill</option><option value="guided">10 questions with feedback</option></select></label> <label>Duration <select id="probability-duration"><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120" selected>2 minutes</option><option value="300">5 minutes</option></select></label>';$('practice').querySelector('.start-row').prepend(probabilityDuration);}probabilityDuration.hidden=track!=='probability';
- settings.hidden=track!=='math';$('difficulty').parentElement.hidden=track==='math'||track==='reflex'||track==='memory'||track==='expressions';$('practice').querySelector('.pill').textContent=track==='math'?'Beat the clock':track==='reflex'?'Choose a game':track==='memory'?'10 memory rounds':track==='expressions'?'12 expressions':track==='estimation'?'10 estimates · your pace':'Timed probability';
+ settings.hidden=track!=='math';$('difficulty').parentElement.hidden=track==='math'||track==='reflex'||track==='risk'||track==='memory'||track==='expressions';$('practice').querySelector('.pill').textContent=track==='math'?'Beat the clock':track==='reflex'?'Choose a game':track==='risk'?'10 risk choices':track==='memory'?'10 memory rounds':track==='expressions'?'12 expressions':track==='estimation'?'10 estimates · your pace':'Timed probability';
  $('practice').querySelector('[data-track="math"] strong').textContent='Math speed drill';$('practice').querySelector('[data-track="math"] > span:not(.track-icon)').textContent='Addition, subtraction, multiplication & division';
  $('probability-duration').parentElement.hidden=$('probability-format').value!=='timed';$('probability-format').onchange=()=>{$('probability-duration').parentElement.hidden=$('probability-format').value!=='timed';$('difficulty').parentElement.hidden=$('probability-format').value==='sprint';};if(track==='probability'&&$('probability-format').value==='sprint')$('difficulty').parentElement.hidden=true;
  $('start').onclick=()=>{
-  if(track==='reflex'||track==='memory'||track==='expressions'){session={id:crypto.randomUUID(),owner:user?.id||null,track:'math',mode:'reflex',attempts:[]};runReflex($('practice'),track==='memory'?'memory':track==='expressions'?'expressions':$('reflex-mode').value,result=>{session.gameResult=result;finish();},resetPractice);return;}
+  if(track==='reflex'||track==='risk'||track==='memory'||track==='expressions'){session={id:crypto.randomUUID(),owner:user?.id||null,track:'math',mode:'reflex',attempts:[]};runReflex($('practice'),track==='risk'?'risk':track==='memory'?'memory':track==='expressions'?'expressions':$('reflex-mode').value,result=>{session.gameResult=result;finish();},resetPractice);return;}
   if(track==='math'){
    const config=readSettings(settings),error=validateSettings(config);$('settings-error').textContent=error;if(error)return;
    session={id:crypto.randomUUID(),owner:user?.id||null,track,mode:'speed',duration:config.duration,settings:config,attempts:[]};
